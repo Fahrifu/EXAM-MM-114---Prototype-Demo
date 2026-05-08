@@ -73,7 +73,7 @@ function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function shortestPath(start, end) {
+function shortestPathLength(start, end) {
     const queue = [[start, 0]];
     seen = new Set([start]);
     while (queue.length) {
@@ -84,7 +84,31 @@ function shortestPath(start, end) {
                 seen.add(to);
                 queue.push([to, dist + 1]);
             }
+        }
     }
     return Infinity;
 }
 
+function shortestpath(start, end, strategy) {
+    const weights = { 
+    Conservative: { cost: 1, risk: 3, airBonus: 0 }, 
+    Balanced: { cost: 1.5, risk: 1.5, airBonus: 0 }, 
+    Opportunistic: { cost: 3, risk: 0.5, airBonus: 0 }, 
+    Agile: { cost: 1, risk: 1, airBonus: -1 } 
+    }[strategy];
+    const queue = [[0, start, []]];
+    const best = {};
+    while (queue.length) {
+        queue.sort((a, b) => a[0] - b[0]);
+        const [score, city, path] = queue.shift();
+        if (best[city] !== undefined && best[city] <= score) continue;
+        best[city] = score;
+        for (const { to, mode } of graph[city]) {
+            const route = routes[mode];
+            const risk = route.delayOn.length / 6;
+            const routeScore = route.cost * weights.cost + risk * 10 * weights.risk + (mode === "air" ? weights.airBonus : 0);
+            queue.push([score + routeScore, to, path.concat([[to, mode]])]);
+            }
+        }
+    return [];
+}
