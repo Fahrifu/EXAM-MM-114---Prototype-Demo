@@ -134,3 +134,25 @@ function cryptoRandomId() {
     return Math.random().toString(36).substr(2, 9);
 }
 
+function makeModifiers(eventTitle = "") {
+    const mod = { 
+        event: eventTitle, 
+        riskWorse: new Set(), 
+        costBonus: {}, 
+        ignoreRisk: false, 
+        eplenishPenalty: 0, 
+        extraContract: 0 };
+
+    if (eventTitle === "Roadworks") mod.riskWorse.add("road");
+    if (eventTitle === "Rail Strike") mod.riskWorse.add("rail");
+    if (eventTitle === "Storm Front") mod.riskWorse.add("sea");
+    if (eventTitle === "Fuel Surge") mod.costBonus = { road: 1, rail: 1, sea: 1 };
+    if (eventTitle === "Air Subsidy") mod.costBonus = { air: -1 };
+    if (eventTitle === "Smooth Operations") mod.ignoreRisk = true;
+    if (eventTitle === "Supplier Shortfall") mod.replenishPenalty = 1;
+    if (eventTitle === "Demand Spike") mod.extraContract = 1;
+
+    return mod;
+}
+
+
