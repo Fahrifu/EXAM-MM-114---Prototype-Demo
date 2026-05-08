@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Crisis Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Supply Chain Crisis</h1>
+    <p>Interactive Prototype demo with Player Mode and Automated Analysis Mode.</p>
+  </header>
+
+  <nav>
+    <button id="playerModeBtn" class="active">Player Mode</button>
+    <button id="analysisModeBtn">Automated Analysis Mode</button>
+  </nav>
+
+  <main>
+    <section id="playerMode" class="mode active">
+      <div class="grid">
+        <div>
+          <div class="panel">
+            <h2>Player Mode: Playable Solo Prototype</h2>
+            <p>Play through six rounds as one supply chain manager. Follow the phase buttons from left to right: event, replenish, contracts, accept, move, then next round.</p>
+            <div class="toolbar">
+              <button class="primary" onclick="startPlayerGame()">New Game</button>
+              <button id="eventBtn" onclick="playerDrawEvent()">1. Draw Event</button>
+              <button id="replenishBtn" onclick="playerReplenish()">2. Replenish</button>
+              <button id="contractsBtn" onclick="playerGenerateContracts()">3. Reveal Contracts</button>
+              <button id="moveBtn" onclick="playerMoveAllShipments()">4. Move Shipments</button>
+              <button id="nextRoundBtn" onclick="playerNextRound()">Next Round</button>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">Round <b id="roundValue">1 / 6</b></div>
+              <div class="metric">Cash <b id="cashValue">18</b></div>
+              <div class="metric">Active Shipments <b id="shipValue">0 / 3</b></div>
+              <div class="metric">On-Time <b id="onTimeValue">0</b></div>
+              <div class="metric">Late <b id="lateValue">0</b></div>
+              <div class="metric">Failed <b id="failedValue">0</b></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Playable Board</h3>
+            <div class="map-wrap">
+              <svg id="gameMap" viewBox="0 0 900 560" role="img" aria-label="Supply Chain Crisis network map"></svg>
+            </div>
+            <p class="small"><span class="legend-line"></span>Road &nbsp; <span class="legend-line rail-l"></span>Rail &nbsp; <span class="legend-line sea-l"></span>Sea &nbsp; <span class="legend-line air-l"></span>Air</p>
+          </div>
+
+          <div class="panel">
+            <h3>City Inventory</h3>
+            <div id="inventoryTable"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <h3>Current Event</h3>
+            <div id="eventCard" class="card"><strong>No event yet</strong>Click “Draw Event” to begin the round.</div>
+          </div>
+
+          <div class="panel">
+            <h3>Available Contracts</h3>
+            <div id="availableContracts" class="cards">No contracts revealed yet.</div>
+          </div>
+
+          <div class="panel">
+            <h3>Active Shipments</h3>
+            <div id="activeShipments">No active shipments.</div>
+          </div>
+
+          <div class="panel">
+            <h3>Route Reference</h3>
+            <table>
+              <thead><tr><th>Type</th><th>Cost</th><th>Delay</th></tr></thead>
+              <tbody>
+                <tr><td>Road</td><td>1</td><td>1–2 on d6</td></tr>
+                <tr><td>Rail</td><td>2</td><td>1 on d6</td></tr>
+                <tr><td>Sea</td><td>1</td><td>1–3 on d6</td></tr>
+                <tr><td>Air</td><td>3</td><td>No delay</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel">
+            <h3>Game Log</h3>
+            <div id="playerLog" class="log">Click New Game to start.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="analysisMode" class="mode">
+      <div class="panel">
+        <h2>Automated Analysis Mode</h2>
+        <p>This mode runs a simplified JavaScript version of the simulation model. It compares four strategy archetypes across repeated games and outputs final cash, delivery success, failed deliveries, and a boxplot-style visualization.</p>
+        <div class="toolbar">
+          <label>Games per strategy: <input id="gamesInput" type="number" value="200" min="10" max="1000" step="10" /></label>
+          <button class="primary" onclick="runAnalysis()">Run Simulation</button>
+          <button onclick="loadReferenceResults()">Load Reference Results</button>
+        </div>
+        <p class="small">Reference results are from the Python simulation: 200 games per strategy, seed = 42. Browser simulation is approximate because JavaScript random generation will not match Python’s seeded output exactly.</p>
+      </div>
+
+      <div class="grid">
+        <div class="panel"><h3>Summary Statistics</h3><div id="summaryTable">Run the simulation to generate results.</div></div>
+        <div class="panel"><h3>Strategy Interpretation</h3><div id="analysisText"><p><span class="pill">Conservative</span> lower risk and steadier delivery.</p><p><span class="pill">Balanced</span> payout efficiency and moderate risk.</p><p><span class="pill">Opportunistic</span> high payout preference, higher volatility.</p><p><span class="pill">Agile</span> short routes and rapid delivery.</p></div></div>
+      </div>
+
+      <div class="panel"><h3>Mean Final Cash Visualization</h3><div id="barChart"></div></div>
+      <div class="panel"><h3>Boxplot-Style Distribution Visualization</h3><svg id="boxplot" class="boxplot" viewBox="0 0 900 300"></svg></div>
+      <div class="panel"><h3>Analysis Log</h3><div id="analysisLog" class="log">Analysis mode ready.</div></div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
