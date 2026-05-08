@@ -1,3 +1,4 @@
+// Logistics Game Prototype - Core Logic and Player Mode Implementation
 const cities = ["Ironvale", "Northport", "Lakeview", "Westhaven", "Centralia", "Eastgate", "Southport", "Coastview"];
 
 const cityData = {
@@ -57,6 +58,7 @@ const events = [
     { title: "Demand Spike", text: "Reveal one extra contract this round." }
 ];
 
+// #region Common Logic
 const graph = buildGraph();
 let playerState;
 
@@ -112,7 +114,8 @@ function shortestPath(start, end, strategy) {
         }
     return [];
 }
-
+// #endregion
+// #region Contract and Event Generation
 function generateContractData(roundNumber = 1) {
     const origin = cities[randInt(0, cities.length - 1)];
     let destination = origin;
@@ -154,7 +157,8 @@ function makeModifiers(eventTitle = "") {
 
     return mod;
 }
-
+// #endregion
+// #region Player Mode
 function startPlayerGame() {
     playerState = {
     round: 1,
@@ -203,6 +207,106 @@ function playerGenerateContracts() {
     logPlayer(`${count} contract(s) revealed. Accept one contract or skip.`);
     renderPlayer();
 }
+
+function playerAcceptContract(id) {
+    if (playerState.phase !== "accept") { logPlayer("You can only accept contracts during the contract phase."); return; }
+    if (playerState.acceptedThisRound) { logPlayer("You already accepted one contract this round."); return; }
+    if (playerState.active.length >= 3) { logPlayer("No shipment slots available. Maximum active shipments is 3."); return; }
+    const contract = playerState.contracts.find(c => c.id === id);
+    if (!contract) return;
+
+    const normalAvailable = Math.min(playerState.stock[contract.origin], contract.quantity);
+    const missing = contract.quantity - normalAvailable;
+    const purchaseCost = normalAvailable * cityData[contract.origin].purchase_cost + missing * (cityData[contract.origin].purchase_cost + 2);
+
+    if (playerState.cash < purchaseCost) {
+        logPlayer(`Cannot accept ${contract.origin} → ${contract.destination}. Purchase cost is ${purchaseCost}, but cash is ${playerState.cash}.`);
+        return;
+    }
+
+    playerState.cash -= purchaseCost;
+    playerState.stock[contract.origin] -= normalAvailable;
+    playerState.active.push({ id: contract.id, contract, location: contract.origin, acceptedRound: playerState.round, moved: false });
+    playerState.contracts = playerState.contracts.filter(c => c.id !== id);
+    playerState.acceptedThisRound = true;
+    playerState.phase = "movement";
+    logPlayer(`Accepted contract ${contract.origin} → ${contract.destination}. Paid ${purchaseCost}. Shipment starts at ${contract.origin}.`);
+    renderPlayer();
+}
+
+function playerSkipContract() {
+    if (playerState.phase !== "accept") return;
+    playerState.phase = "movement";
+    logPlayer("Skipped contract acceptance this round.");
+    renderPlayer();
+}
+
+function playerMoveAllShipments() {
+    if (!requirePhase("movement")) return;
+    if (playerState.active.length === 0) {
+        logPlayer("No active shipments to move.");
+        playerState.movedThisRound = true;
+        playerState.phase = "endRound";
+        renderPlayer();
+        return;
+    }
+    const shipmentIds = playerState.active.map(s => s.id);
+    for (const id of shipmentIds) {
+        if (playerState.active.find(s => s.id === id)) playerMoveShipment(id);
+    }
+    playerState.movedThisRound = true;
+    playerState.phase = "endRound";
+    renderPlayer();
+}
+
+function playerMoveShipment(id) {
+    const shipment = playerState.active.find(s => s.id === id);
+    if (!shipment) return;
+    const select = document.getElementById(`move-${id}`);
+    const selected = select ? select.value : "";
+    if (!selected) {
+        logPlayer(`Shipment ${shortId(id)} did not move because no route was selected.`); 
+        return; 
+    }
+    const [nextCity, routeType] = selected.split("|");
+    const route = routes[routeType];
+    const movementCost = Math.max(0, route.cost + (playerState.modifiers.costBonus[routeType] || 0));
+    playerState.cash -= movementCost;
+
+    let delayNumbers = route.delayOn.slice();
+    if (playerState.modifiers.riskWorse.has(routeType)) {
+        const extra = Math.max(0, ...delayNumbers) + 1;
+        if (extra <= 6) delayNumbers.push(extra);
+    }
+
+    const roll = routeType === "air" || playerState.modifiers.ignoreRisk ? null : randInt(1, 6);
+    const delayed = roll !== null && delayNumbers.includes(roll);
+
+    if (delayed) {
+        logPlayer(`Shipment ${shortId(id)} attempted ${routeType.toUpperCase()} to ${nextCity}. Paid ${movementCost}. Rolled ${roll}: DELAYED.`);
+    } else {
+        shipment.location = nextCity;
+        const rollText = roll === null ? "no delay roll" : `rolled ${roll}`;
+        logPlayer(`Shipment ${shortId(id)} moved by ${routeType.toUpperCase()} to ${nextCity}. Paid ${movementCost}; ${rollText}.`);
+    }
+
+    if (shipment.location === shipment.contract.destination) deliverShipment(shipment.id);
+}
+
+function deliverShipment(id) {
+    const idx = playerState.active.findIndex(s => s.id === id);
+    if (idx === -1) return;
+    const shipment = playerState.active[idx];
+    const onTime = playerState.round <= shipment.contract.deadline;
+    const earned = onTime ? shipment.contract.payout : Math.floor(shipment.contract.payout / 2);
+    playerState.cash += earned;
+    playerState.completed.push({ ...shipment, deliveredRound: playerState.round, onTime, failed: false, earned });
+    playerState.active.splice(idx, 1);
+    logPlayer(`DELIVERED ${shipment.contract.origin} → ${shipment.contract.destination}. ${onTime ? "On time" : "Late"}. Earned ${earned}.`);
+}
+// #endregion
+
+
 // #region Rendering
 
 function renderPlayer() {
@@ -293,3 +397,5 @@ function renderMap() {
     });
     svg.innerHTML = html;
 }
+
+// #endregion
