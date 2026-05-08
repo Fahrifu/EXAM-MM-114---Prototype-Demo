@@ -89,7 +89,7 @@ function shortestPathLength(start, end) {
     return Infinity;
 }
 
-function shortestpath(start, end, strategy) {
+function shortestPath(start, end, strategy) {
     const weights = { 
     Conservative: { cost: 1, risk: 3, airBonus: 0 }, 
     Balanced: { cost: 1.5, risk: 1.5, airBonus: 0 }, 
@@ -112,3 +112,25 @@ function shortestpath(start, end, strategy) {
         }
     return [];
 }
+
+function generateContractData(roundNumber = 1) {
+    const origin = cities[randInt(0, cities.length - 1)];
+    let destination = origin;
+    while (destination === origin) {
+        destination = cities[randInt(0, cities.length - 1)];
+    }
+    const quantity = randInt(1, 6) <= 2 ? 1 : 2;
+    const distance = shortestPathLength(origin, destination);
+    const slack = randInt(1, 6) <= 3 ? 0 : 1;
+    const deadline = roundNumber + distance + slack;
+    const marketBonus = randInt(1, 4);
+    const urgencyBonus = slack === 0 ? 2 : 0;
+    const purchaseCost = cityData[origin].purchase_cost * quantity;
+    const payout = purchaseCost + 2 + 3 * distance + marketBonus + urgencyBonus;
+    return { id: cryptoRandomId(), origin, destination, quantity, distance, slack, deadline, marketBonus, urgencyBonus, payout };
+}
+
+function cryptoRandomId() {
+    return Math.random().toString(36).substr(2, 9);
+}
+
